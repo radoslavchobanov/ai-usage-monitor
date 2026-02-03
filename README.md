@@ -52,7 +52,7 @@ sudo dnf install python3-gobject gtk3 libayatana-appindicator-gtk3
 ### Install
 
 ```bash
-git clone https://github.com/anthropics/ai-usage-monitor.git
+git clone https://github.com/radoslavchobanov/ai-usage-monitor.git
 cd ai-usage-monitor
 ./install.sh
 ```
