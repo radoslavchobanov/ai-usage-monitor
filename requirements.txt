@@ -1,0 +1,14 @@
+# AI Usage Monitor - Dependencies
+#
+# Note: Most dependencies are system packages that should be installed via your
+# package manager, not pip. See README.md for installation instructions.
+#
+# System packages required:
+# - python3-gi (PyGObject)
+# - python3-gi-cairo (Cairo bindings)
+# - gir1.2-gtk-3.0 (GTK3)
+# - gir1.2-ayatanaappindicator3-0.1 (System tray support)
+#
+# The following are for reference only - install via system package manager:
+# PyGObject>=3.42.0
+# pycairo>=1.20.0

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=AI Usage Monitor
+Comment=Monitor AI usage limits and costs
+Exec=/usr/bin/python3 /home/rado/Documents/ai-usage-monitor/ai_usage_monitor.py
+Icon=utilities-system-monitor
+Terminal=false
+Type=Application
+Categories=Utility;Monitor;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+X-KDE-autostart-phase=2
