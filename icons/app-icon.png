@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- KDE-style monochrome: Robot/AI face -->
+
+  <!-- Antenna -->
+  <line x1="32" y1="2" x2="32" y2="12" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="2" r="3" fill="#ffffff"/>
+
+  <!-- Head (rounded rectangle) -->
+  <rect x="8" y="14" width="48" height="44" rx="10" fill="none" stroke="#ffffff" stroke-width="4"/>
+
+  <!-- Eyes -->
+  <rect x="15" y="24" width="12" height="10" rx="3" fill="#ffffff"/>
+  <rect x="37" y="24" width="12" height="10" rx="3" fill="#ffffff"/>
+
+  <!-- Mouth -->
+  <line x1="20" y1="46" x2="44" y2="46" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# AI Usage Monitor - Installation Script for Linux
+# PlasmaCodexBar - Installation Script for Linux
 # Tested on Manjaro/Arch Linux
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="ai-usage-monitor"
+APP_NAME="plasmacodexbar"
 INSTALL_DIR="$HOME/.local/share/$APP_NAME"
 ICON_DIR="$HOME/.local/share/icons/hicolor"
 DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME.desktop"
 AUTOSTART_FILE="$HOME/.config/autostart/$APP_NAME.desktop"
 
 echo "==================================="
-echo "  AI Usage Monitor - Installation"
+echo "  PlasmaCodexBar - Installation"
 echo "==================================="
 echo
 
@@ -37,8 +37,8 @@ mkdir -p "$(dirname "$DESKTOP_FILE")"
 mkdir -p "$(dirname "$AUTOSTART_FILE")"
 
 echo "[2/5] Installing application..."
-cp "$SCRIPT_DIR/ai_usage_monitor.py" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/ai_usage_monitor.py"
+cp "$SCRIPT_DIR/plasmacodexbar_monitor.py" "$INSTALL_DIR/"
+chmod +x "$INSTALL_DIR/plasmacodexbar_monitor.py"
 
 echo "[3/5] Installing icons..."
 # Copy SVG icons
@@ -64,9 +64,9 @@ gtk-update-icon-cache "$ICON_DIR" 2>/dev/null || true
 echo "[4/5] Creating desktop entry..."
 cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
-Name=AI Usage Monitor
+Name=PlasmaCodexBar
 Comment=Monitor AI usage limits and costs
-Exec=/usr/bin/python3 $INSTALL_DIR/ai_usage_monitor.py
+Exec=/usr/bin/python3 $INSTALL_DIR/plasmacodexbar_monitor.py
 Icon=$APP_NAME
 Terminal=false
 Type=Application
@@ -77,9 +77,9 @@ EOF
 echo "[5/5] Setting up autostart..."
 cat > "$AUTOSTART_FILE" << EOF
 [Desktop Entry]
-Name=AI Usage Monitor
+Name=PlasmaCodexBar
 Comment=Monitor AI usage limits and costs
-Exec=/usr/bin/python3 $INSTALL_DIR/ai_usage_monitor.py
+Exec=/usr/bin/python3 $INSTALL_DIR/plasmacodexbar_monitor.py
 Icon=$APP_NAME
 Terminal=false
 Type=Application
@@ -98,8 +98,8 @@ echo "Autostart entry created at: $AUTOSTART_FILE"
 echo "Icons installed to: $ICON_DIR"
 echo
 echo "To start the application:"
-echo "  python3 $INSTALL_DIR/ai_usage_monitor.py"
+echo "  python3 $INSTALL_DIR/plasmacodexbar_monitor.py"
 echo
-echo "Or search for 'AI Usage Monitor' in your application menu."
+echo "Or search for 'PlasmaCodexBar' in your application menu."
 echo
 echo "To uninstall, run: $SCRIPT_DIR/uninstall.sh"

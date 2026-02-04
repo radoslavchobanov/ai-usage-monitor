@@ -1,199 +1,94 @@
-# AI Usage Monitor
+# PlasmaCodexBar
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.1.0-blue.svg" alt="Version">
-  <img src="https://img.shields.io/badge/platform-Linux-green.svg" alt="Platform">
-  <img src="https://img.shields.io/badge/python-3.8+-yellow.svg" alt="Python">
+  <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/KDE_Plasma-6-blue.svg" alt="Plasma 6">
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 </p>
 
-A Linux system tray application for monitoring AI subscription usage limits and costs. Inspired by [CodexBar](https://github.com/steipete/CodexBar) for macOS.
+A native KDE Plasma 6 system tray widget for monitoring AI subscription usage. Inspired by [CodexBar](https://github.com/steipete/CodexBar) for macOS.
+
+## Quick Install
+
+```bash
+git clone https://github.com/radoslavchobanov/plasmacodexbar.git
+cd plasmacodexbar
+./install-plasmoid.sh
+```
+
+That's it! The widget will appear in your system tray.
 
 ## Features
 
-- **Real Subscription Data**: Fetches actual usage from Claude and OpenAI OAuth APIs
-- **Multi-Provider Support**: Monitor Claude (Anthropic) and Codex/ChatGPT (OpenAI)
-- **Dark & Light Themes**: Professional UI with theme switching via Settings
-- **Usage Tracking**:
+- **Native Plasma 6 Widget**: Seamless system tray integration
+- **Multi-Provider Support**: Monitor Claude and Codex/ChatGPT usage
+- **Real-time Tracking**:
   - Session usage (5-hour window)
   - Weekly usage with reset countdown
-  - Model-specific quotas (Sonnet, Opus, etc.)
-  - Extra usage/overage tracking
-- **Visual Indicators**: Color-coded progress bars (green → yellow → red)
-- **System Tray Integration**: Quick access from your panel
-- **CLI Mode**: Check status from terminal with `--status` flag
+  - Per-model quotas (Sonnet, Opus, etc.)
+  - Extra usage and cost estimation
+- **Visual Progress Bars**: Color-coded (green → yellow → red)
 
-## Screenshots
+## Requirements
 
-*Click the system tray icon to open the usage panel*
+- KDE Plasma 6
+- Python 3.8+
+- [Claude Code CLI](https://claude.ai/code) authenticated (for Claude monitoring)
+- [Codex CLI](https://github.com/openai/codex) authenticated (for Codex monitoring)
 
-The app displays:
-- Provider tabs (Claude, Codex)
-- Plan information and last update time
-- Session and weekly usage with progress bars
-- Reset countdown timers
-- Cost tracking (local estimates)
+## Alternative Installation
 
-## Installation
+### From KDE Store
 
-### Prerequisites
+1. Right-click desktop → "Add Widgets" → "Get New Widgets" → "Download New Plasma Widgets"
+2. Search for "PlasmaCodexBar"
+3. Click "Install"
 
-```bash
-# Ubuntu/Debian
-sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1
-
-# Arch/Manjaro
-sudo pacman -S python-gobject gtk3 libayatana-appindicator
-
-# Fedora
-sudo dnf install python3-gobject gtk3 libayatana-appindicator-gtk3
-```
-
-### Install
+### From .plasmoid file
 
 ```bash
-git clone https://github.com/radoslavchobanov/ai-usage-monitor.git
-cd ai-usage-monitor
-./install.sh
+kpackagetool6 -t Plasma/Applet -i plasmacodexbar-1.0.0.plasmoid
 ```
-
-This will:
-- Copy files to `~/.local/share/ai-usage-monitor/`
-- Create desktop entry for autostart
-- Add application to your system menu
 
 ## Usage
 
-### GUI Mode (System Tray)
-
-```bash
-# Run directly
-./run.sh
-
-# Or via Python
-python3 ai_usage_monitor.py
-```
-
-### CLI Mode
-
-```bash
-python3 ai_usage_monitor.py --status
-```
-
-Output:
-```
-╭────────────────────────────────────────────────────╮
-│      AI Usage Monitor v3.1 - Theme Support         │
-╰────────────────────────────────────────────────────╯
-
-◐ Claude (Max Plan)
-  Session   ████████░░░░░░░░░░░░░  42%  (resets in 2h 15m)
-  Weekly    ██████░░░░░░░░░░░░░░░  31%  (resets in 4d 12h)
-  Sonnet    █████░░░░░░░░░░░░░░░░  28%
-```
-
-## Data Sources
-
-### Claude (Anthropic OAuth API)
-
-The app authenticates using your Claude Code CLI credentials stored in `~/.claude/`. It fetches real subscription usage from Anthropic's OAuth API.
-
-**Tracked metrics:**
-- Session usage (5-hour rolling window)
-- Weekly usage (7-day rolling window)
-- Model-specific quotas (Sonnet, Opus, Haiku)
-- Extra usage spending (if enabled)
-- Plan information
-
-### Codex/ChatGPT (OpenAI OAuth API)
-
-Uses the same OAuth endpoint as CodexBar to fetch ChatGPT Plus/Pro usage data from `~/.codex/` credentials.
+Click the robot icon in your system tray to view:
+- Provider tabs (Claude / Codex) with logos
+- Session and weekly usage bars
+- Models section with per-model breakdown
+- Extra usage and estimated costs
+- Quick links to provider dashboards
 
 ## Configuration
 
-### Settings Dialog
+If the widget doesn't appear automatically:
 
-Click the **⚙ Settings** button in the app to:
-- Switch between Dark and Light themes
+1. Right-click on the system tray
+2. Select "Configure System Tray..."
+3. Go to "Entries" tab
+4. Find "PlasmaCodexBar" → set to "Always shown"
 
-Settings are stored in: `~/.config/ai-usage-monitor/settings.json`
+## Troubleshooting
 
-### App Config
+**"Not connected" for Claude**
+- Ensure Claude Code CLI is authenticated: run `claude` and complete login
 
-Main configuration: `~/.config/ai-usage-monitor/config.json`
+**"Not connected" for Codex**
+- Ensure Codex CLI is authenticated: check `~/.codex/auth.json` exists
 
-```json
-{
-  "refresh_interval": 60,
-  "enabled_providers": ["claude", "codex"],
-  "show_notifications": true
-}
-```
-
-## Theme Support
-
-The app includes two professionally designed themes:
-
-- **Dark Theme** (default): Easy on the eyes, perfect for dark desktop environments
-- **Light Theme**: Clean and bright for light desktop setups
-
-Both themes feature proper contrast ratios for accessibility.
-
-## Architecture
-
-```
-~/.claude/                        # Claude Code credentials
-├── credentials.json             # OAuth tokens (auto-managed)
-└── ...
-
-~/.codex/                        # Codex CLI credentials
-├── auth.json                    # OAuth tokens
-└── ...
-
-~/.config/ai-usage-monitor/      # App configuration
-├── config.json                  # General settings
-└── settings.json                # Theme preferences
-
-/tmp/ai-usage-monitor-icons/     # Generated tray icons (temporary)
-```
+**Widget not showing**
+- Restart plasmashell: `kquitapp6 plasmashell && kstart plasmashell`
 
 ## Uninstall
 
 ```bash
-./uninstall.sh
+kpackagetool6 -t Plasma/Applet -r org.kde.plasma.plasmacodexbar
 ```
-
-## Troubleshooting
-
-### "Not connected" for Claude
-
-1. Make sure Claude Code CLI is installed and authenticated:
-   ```bash
-   claude --version
-   ```
-2. If not authenticated, run `claude` and complete the login flow
-
-### "Not connected" for Codex
-
-1. Install and authenticate with Codex CLI
-2. Check that `~/.codex/auth.json` exists
-
-### Tray icon not showing
-
-Some desktop environments require additional packages:
-```bash
-# For GNOME with AppIndicator extension
-sudo apt install gnome-shell-extension-appindicator
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Credits
 
 - Inspired by [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger
-- Uses Anthropic and OpenAI OAuth APIs for real subscription data
+- Uses Anthropic and OpenAI OAuth APIs
 
 ## License
 

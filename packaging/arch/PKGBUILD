@@ -1,0 +1,29 @@
+# Maintainer: Radoslav Chobanov
+pkgname=plasma6-applet-plasmacodexbar
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="PlasmaCodexBar - KDE Plasma 6 system tray applet for monitoring AI usage limits (Claude, Codex)"
+arch=('any')
+url="https://github.com/radoslavchobanov/plasmacodexbar"
+license=('MIT')
+depends=('plasma-workspace' 'python')
+makedepends=('git')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/heads/main.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    cd "$srcdir/plasmacodexbar-main"
+
+    # Install plasmoid
+    install -dm755 "$pkgdir/usr/share/plasma/plasmoids/org.kde.plasma.plasmacodexbar"
+    cp -r plasmoid/* "$pkgdir/usr/share/plasma/plasmoids/org.kde.plasma.plasmacodexbar/"
+
+    # Install backend
+    install -Dm755 plasmacodexbar-backend "$pkgdir/usr/bin/plasmacodexbar-backend"
+
+    # Install license
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+    # Install documentation
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

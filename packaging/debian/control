@@ -1,0 +1,20 @@
+Source: plasma-applet-plasmacodexbar
+Section: kde
+Priority: optional
+Maintainer: Radoslav Chobanov <radoslav@example.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.0
+Homepage: https://github.com/radoslavchobanov/plasmacodexbar
+
+Package: plasma-applet-plasmacodexbar
+Architecture: all
+Depends: ${misc:Depends}, plasma-workspace, python3
+Description: PlasmaCodexBar - KDE Plasma system tray applet for monitoring AI usage limits
+ A native KDE Plasma 6 system tray widget that monitors your AI usage
+ limits for Claude (Anthropic) and Codex (OpenAI).
+ .
+ Features:
+  - Real-time session and weekly usage tracking
+  - Cost estimation and token counting
+  - Native Plasma 6 popup interface
+  - Support for Claude and Codex/ChatGPT

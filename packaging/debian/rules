@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	# Install plasmoid
+	install -dm755 debian/plasma-applet-plasmacodexbar/usr/share/plasma/plasmoids/org.kde.plasma.plasmacodexbar
+	cp -r plasmoid/* debian/plasma-applet-plasmacodexbar/usr/share/plasma/plasmoids/org.kde.plasma.plasmacodexbar/
+
+	# Install backend
+	install -Dm755 plasmacodexbar-backend debian/plasma-applet-plasmacodexbar/usr/bin/plasmacodexbar-backend

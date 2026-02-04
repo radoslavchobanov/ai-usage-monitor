@@ -1,0 +1,368 @@
+#!/usr/bin/env python3
+"""
+PlasmaCodexBar - Backend Service
+Exposes AI usage data for the KDE Plasma applet
+"""
+
+import json
+import sys
+import os
+from pathlib import Path
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Dict, Any
+import urllib.request
+import urllib.error
+
+# Configuration paths
+CONFIG_DIR = Path.home() / ".config" / "plasmacodexbar"
+CLAUDE_DIR = Path.home() / ".claude"
+CODEX_DIR = Path.home() / ".codex"
+
+# API endpoints
+CLAUDE_OAUTH_API_URL = "https://api.anthropic.com/api/oauth/usage"
+CLAUDE_OAUTH_BETA_HEADER = "oauth-2025-04-20"
+CODEX_OAUTH_API_URL = "https://chatgpt.com/backend-api/wham/usage"
+
+
+class ClaudeCollector:
+    """Collects Claude usage data"""
+
+    def __init__(self):
+        self.credentials_file = CLAUDE_DIR / ".credentials.json"
+
+    def collect(self) -> Dict[str, Any]:
+        result = {
+            "provider_id": "claude",
+            "provider_name": "Claude",
+            "is_connected": False,
+            "error_message": "",
+            "plan_name": "Unknown",
+            "session_used_pct": 0,
+            "session_reset_time": "",
+            "weekly_used_pct": 0,
+            "weekly_reset_time": "",
+            "pace_status": "On track",
+            "model_usage": {},
+            "extra_usage_enabled": False,
+            "extra_usage_current": 0,
+            "extra_usage_limit": 0,
+            "extra_usage_pct": 0,
+            # Cost tracking
+            "cost_today": 0,
+            "cost_today_tokens": 0,
+            "cost_30_days": 0,
+            "cost_30_days_tokens": 0,
+        }
+
+        # Load credentials
+        if not self.credentials_file.exists():
+            result["error_message"] = "Not logged in. Run 'claude' to authenticate."
+            return result
+
+        try:
+            with open(self.credentials_file, 'r') as f:
+                creds = json.load(f).get("claudeAiOauth", {})
+        except Exception:
+            result["error_message"] = "Failed to read credentials."
+            return result
+
+        access_token = creds.get("accessToken")
+        if not access_token:
+            result["error_message"] = "No access token. Run 'claude' to authenticate."
+            return result
+
+        # Check expiry
+        expires_at = creds.get("expiresAt", 0)
+        if expires_at and datetime.fromtimestamp(expires_at / 1000) < datetime.now():
+            result["error_message"] = "Token expired. Run 'claude' to refresh."
+            return result
+
+        # Determine plan
+        sub_type = creds.get("subscriptionType", "free")
+        rate_tier = creds.get("rateLimitTier", "")
+        if "max" in rate_tier.lower() or "max" in sub_type.lower():
+            result["plan_name"] = "Max"
+        elif "pro" in sub_type.lower():
+            result["plan_name"] = "Pro"
+        elif "team" in sub_type.lower():
+            result["plan_name"] = "Team"
+        else:
+            result["plan_name"] = sub_type.title()
+
+        # Fetch from API
+        try:
+            req = urllib.request.Request(
+                CLAUDE_OAUTH_API_URL,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "anthropic-beta": CLAUDE_OAUTH_BETA_HEADER,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                }
+            )
+            with urllib.request.urlopen(req, timeout=30) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode('utf-8'))
+
+                    result["is_connected"] = True
+
+                    # 5-hour session (API returns percentage directly, e.g. 30.0 = 30%)
+                    five_hour = data.get("five_hour", {})
+                    if five_hour:
+                        result["session_used_pct"] = five_hour.get("utilization", 0)
+                        if five_hour.get("resets_at"):
+                            result["session_reset_time"] = five_hour["resets_at"]
+
+                    # 7-day window
+                    seven_day = data.get("seven_day", {})
+                    if seven_day:
+                        result["weekly_used_pct"] = seven_day.get("utilization", 0)
+                        if seven_day.get("resets_at"):
+                            result["weekly_reset_time"] = seven_day["resets_at"]
+
+                    # Model quotas
+                    for key in ["seven_day_sonnet", "seven_day_opus"]:
+                        model_data = data.get(key, {})
+                        if model_data and model_data.get("utilization") is not None:
+                            model_name = "Sonnet" if "sonnet" in key else "Opus"
+                            result["model_usage"][model_name] = model_data["utilization"]
+
+                    # Extra usage
+                    extra = data.get("extra_usage", {})
+                    if extra and extra.get("is_enabled"):
+                        result["extra_usage_enabled"] = True
+                        result["extra_usage_current"] = (extra.get("used_credits", 0) or 0) / 100
+                        result["extra_usage_limit"] = (extra.get("monthly_limit", 0) or 0) / 100
+                        result["extra_usage_pct"] = extra.get("utilization", 0) or 0
+
+                    # Calculate pace
+                    if result["weekly_reset_time"]:
+                        try:
+                            reset = datetime.fromisoformat(result["weekly_reset_time"].replace('Z', '+00:00'))
+                            now = datetime.now(timezone.utc)
+                            week_start = reset - timedelta(days=7)
+                            total_secs = (reset - week_start).total_seconds()
+                            elapsed_secs = (now - week_start).total_seconds()
+                            expected = (elapsed_secs / total_secs) * 100
+                            pace = result["weekly_used_pct"] - expected
+
+                            if pace < -10:
+                                result["pace_status"] = f"Behind ({pace:.0f}%)"
+                            elif pace > 10:
+                                result["pace_status"] = f"Ahead (+{pace:.0f}%)"
+                        except:
+                            pass
+
+        except urllib.error.HTTPError as e:
+            result["error_message"] = f"API error: {e.code}"
+            result["is_connected"] = True
+        except Exception as e:
+            result["error_message"] = f"Failed to fetch: {e}"
+
+        # Load cost stats from local cache
+        self._load_cost_stats(result)
+        return result
+
+    def _load_cost_stats(self, result: Dict[str, Any]):
+        """Load cost/token stats from Claude Code stats cache"""
+        stats_file = CLAUDE_DIR / "stats-cache.json"
+        if not stats_file.exists():
+            return
+
+        try:
+            with open(stats_file, 'r') as f:
+                data = json.load(f)
+
+            # Pricing per 1M tokens
+            PRICING = {
+                "claude-opus-4-5-20251101": {"input": 15.0, "output": 75.0, "cache_read": 1.5, "cache_write": 18.75},
+                "claude-sonnet-4-5-20250929": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
+            }
+            DEFAULT_PRICING = {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75}
+
+            today = datetime.now().date()
+            thirty_days_ago = today - timedelta(days=30)
+
+            # Calculate daily tokens
+            for entry in data.get("dailyModelTokens", []):
+                try:
+                    entry_date = datetime.strptime(entry["date"], "%Y-%m-%d").date()
+                    tokens = sum(entry.get("tokensByModel", {}).values())
+                    if entry_date == today:
+                        result["cost_today_tokens"] = tokens
+                    if entry_date >= thirty_days_ago:
+                        result["cost_30_days_tokens"] += tokens
+                except:
+                    continue
+
+            # Calculate costs from model usage
+            model_usage = data.get("modelUsage", {})
+            total_cost = 0.0
+
+            for model_id, usage in model_usage.items():
+                input_tokens = usage.get("inputTokens", 0)
+                output_tokens = usage.get("outputTokens", 0)
+                cache_read = usage.get("cacheReadInputTokens", 0)
+                cache_write = usage.get("cacheCreationInputTokens", 0)
+
+                pricing = PRICING.get(model_id, DEFAULT_PRICING)
+                cost = (
+                    (input_tokens / 1_000_000) * pricing["input"] +
+                    (output_tokens / 1_000_000) * pricing["output"] +
+                    (cache_read / 1_000_000) * pricing["cache_read"] +
+                    (cache_write / 1_000_000) * pricing["cache_write"]
+                )
+                total_cost += cost
+
+            result["cost_30_days"] = total_cost
+            result["cost_today"] = (result["cost_today_tokens"] / 1_000_000) * 5  # Rough estimate
+
+        except Exception as e:
+            pass  # Silently fail for cost stats
+
+
+class CodexCollector:
+    """Collects Codex/ChatGPT usage data"""
+
+    PLAN_NAMES = {
+        "free": "Free", "plus": "Plus", "pro": "Pro",
+        "team": "Team", "enterprise": "Enterprise",
+    }
+
+    def __init__(self):
+        self.auth_file = CODEX_DIR / "auth.json"
+
+    def collect(self) -> Dict[str, Any]:
+        result = {
+            "provider_id": "codex",
+            "provider_name": "Codex",
+            "is_connected": False,
+            "error_message": "",
+            "plan_name": "Unknown",
+            "session_used_pct": 0,
+            "session_reset_time": "",
+            "weekly_used_pct": 0,
+            "weekly_reset_time": "",
+            "pace_status": "On track",
+            "model_usage": {},
+            "extra_usage_enabled": False,
+            "extra_usage_current": 0,
+            "extra_usage_limit": 0,
+            "extra_usage_pct": 0,
+            # Cost tracking (not available for Codex yet)
+            "cost_today": 0,
+            "cost_today_tokens": 0,
+            "cost_30_days": 0,
+            "cost_30_days_tokens": 0,
+        }
+
+        if not self.auth_file.exists():
+            result["error_message"] = "Not logged in. Run 'codex' to authenticate."
+            return result
+
+        try:
+            with open(self.auth_file, 'r') as f:
+                auth = json.load(f)
+        except Exception:
+            result["error_message"] = "Failed to read auth file."
+            return result
+
+        tokens = auth.get("tokens", {})
+        access_token = tokens.get("access_token", "").strip()
+        if not access_token:
+            access_token = auth.get("OPENAI_API_KEY", "").strip()
+
+        if not access_token:
+            result["error_message"] = "No access token. Run 'codex' to authenticate."
+            return result
+
+        # Fetch usage
+        try:
+            req = urllib.request.Request(
+                CODEX_OAUTH_API_URL,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/json",
+                }
+            )
+            if tokens.get("account_id"):
+                req.add_header("ChatGPT-Account-Id", tokens["account_id"])
+
+            with urllib.request.urlopen(req, timeout=30) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode('utf-8'))
+
+                    result["is_connected"] = True
+                    result["plan_name"] = self.PLAN_NAMES.get(
+                        data.get("plan_type", ""),
+                        data.get("plan_type", "Unknown").title()
+                    )
+
+                    rate_limit = data.get("rate_limit", {})
+
+                    # Primary window (session)
+                    primary = rate_limit.get("primary_window", {})
+                    if primary:
+                        result["session_used_pct"] = primary.get("used_percent", 0)
+                        if primary.get("reset_at"):
+                            result["session_reset_time"] = datetime.fromtimestamp(
+                                primary["reset_at"], tz=timezone.utc
+                            ).isoformat()
+
+                    # Secondary window (weekly)
+                    secondary = rate_limit.get("secondary_window", {})
+                    if secondary:
+                        result["weekly_used_pct"] = secondary.get("used_percent", 0)
+                        if secondary.get("reset_at"):
+                            result["weekly_reset_time"] = datetime.fromtimestamp(
+                                secondary["reset_at"], tz=timezone.utc
+                            ).isoformat()
+
+        except urllib.error.HTTPError as e:
+            result["error_message"] = f"API error: {e.code}"
+            result["is_connected"] = True
+        except Exception as e:
+            result["error_message"] = f"Failed to fetch: {e}"
+
+        return result
+
+
+def main():
+    """Output usage data as JSON"""
+    collectors = [ClaudeCollector(), CodexCollector()]
+
+    providers = []
+    for collector in collectors:
+        try:
+            providers.append(collector.collect())
+        except Exception as e:
+            providers.append({
+                "provider_id": collector.__class__.__name__.lower().replace("collector", ""),
+                "provider_name": collector.__class__.__name__.replace("Collector", ""),
+                "is_connected": False,
+                "error_message": str(e),
+            })
+
+    output = {
+        "providers": providers,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    if "--json" in sys.argv:
+        print(json.dumps(output, indent=2))
+    else:
+        # Human-readable output
+        for p in providers:
+            print(f"\n=== {p['provider_name']} ===")
+            if not p.get("is_connected"):
+                print(f"  {p.get('error_message', 'Not connected')}")
+                continue
+            print(f"  Plan: {p.get('plan_name', 'Unknown')}")
+            print(f"  Session: {p.get('session_used_pct', 0):.1f}%")
+            print(f"  Weekly: {p.get('weekly_used_pct', 0):.1f}%")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

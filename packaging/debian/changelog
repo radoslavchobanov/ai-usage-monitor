@@ -1,0 +1,8 @@
+plasma-applet-plasmacodexbar (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Native KDE Plasma 6 system tray applet
+  * Support for Claude and Codex monitoring
+  * Real-time usage tracking with cost estimation
+
+ -- Radoslav Chobanov <radoslav@example.com>  Tue, 04 Feb 2026 12:00:00 +0000
