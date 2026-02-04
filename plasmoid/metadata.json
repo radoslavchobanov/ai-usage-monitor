@@ -1,0 +1,21 @@
+{
+    "KPlugin": {
+        "Id": "org.kde.plasma.aiusagemonitor",
+        "Name": "AI Usage Monitor",
+        "Description": "Monitor AI usage limits for Claude, Codex, and other providers",
+        "Icon": "preferences-system-network",
+        "Authors": [
+            {
+                "Name": "Radoslav Chobanov"
+            }
+        ],
+        "Category": "System Information",
+        "License": "MIT",
+        "Version": "1.0.0",
+        "EnabledByDefault": true
+    },
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-MainScript": "ui/main.qml",
+    "X-Plasma-NotificationArea": "true",
+    "X-Plasma-NotificationAreaCategory": "SystemServices"
+}
