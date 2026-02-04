@@ -756,8 +756,8 @@ class IconGenerator:
         return icon_path
 
     def create_tray_icon(self, size: int = 22) -> str:
-        """Create static KDE-style monochrome tray icon - AI spark symbol"""
-        icon_path = str(ICON_DIR / "tray-icon.png")
+        """Create static KDE-style monochrome tray icon - Robot face"""
+        icon_path = str(ICON_DIR / "tray-robot.png")
 
         # Try to use bundled SVG first
         if TRAY_ICON_SVG.exists():
@@ -766,9 +766,10 @@ class IconGenerator:
                     str(TRAY_ICON_SVG), size, size, True
                 )
                 pixbuf.savev(icon_path, "png", [], [])
+                print(f"Loaded tray icon from SVG: {TRAY_ICON_SVG}")
                 return icon_path
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Failed to load SVG tray icon: {e}")
 
         # Fallback: Generate with Cairo - Robot face
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
