@@ -1,18 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- KDE-style monochrome icon: AI spark with circular gauge -->
-
-  <!-- Circular gauge background -->
-  <circle cx="32" cy="32" r="26" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.3"/>
-
-  <!-- Gauge fill (arc showing ~70% usage) -->
-  <path d="M32 6 A26 26 0 1 1 11.5 49" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-
-  <!-- AI spark/star symbol in center -->
-  <path d="M32 16 L34 26 L44 24 L36 30 L44 40 L34 36 L32 48 L30 36 L20 40 L28 30 L20 24 L30 26 Z"
-        fill="#ffffff" opacity="0.9"/>
-
-  <!-- Small dots representing neural activity -->
-  <circle cx="14" cy="32" r="2" fill="#ffffff" opacity="0.6"/>
-  <circle cx="50" cy="32" r="2" fill="#ffffff" opacity="0.6"/>
-  <circle cx="32" cy="56" r="2" fill="#ffffff" opacity="0.5"/>
+  <!-- KDE-style monochrome app icon: AI spark/star -->
+  <path d="M32 4 L35.5 22 L53 18 L40 31 L56 46 L35.5 38 L32 60 L28.5 38 L8 46 L24 31 L11 18 L28.5 22 Z"
+        fill="#ffffff" fill-opacity="0.95"/>
 </svg>

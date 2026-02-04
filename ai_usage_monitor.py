@@ -717,55 +717,45 @@ class IconGenerator:
         ctx = cairo.Context(surface)
 
         center = size / 2
-        radius = size * 0.4
 
-        # Circular gauge background (faint)
-        ctx.set_source_rgba(1, 1, 1, 0.3)
-        ctx.set_line_width(size * 0.047)
-        ctx.arc(center, center, radius, 0, 2 * math.pi)
-        ctx.stroke()
-
-        # Gauge fill arc (~70% - from top going clockwise)
-        ctx.set_source_rgba(1, 1, 1, 1)
-        ctx.set_line_width(size * 0.063)
-        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-        # Start from top (-90deg) and go ~250 degrees
-        ctx.arc(center, center, radius, -math.pi / 2, math.pi * 0.9)
-        ctx.stroke()
-
-        # AI spark/star in center
-        spark_size = size * 0.25
-        ctx.set_source_rgba(1, 1, 1, 0.9)
+        # AI spark/star symbol
+        spark_size = size * 0.44
+        ctx.set_source_rgba(1, 1, 1, 0.95)
         ctx.move_to(center, center - spark_size)
-        ctx.line_to(center + spark_size * 0.15, center - spark_size * 0.35)
-        ctx.line_to(center + spark_size * 0.7, center - spark_size * 0.5)
-        ctx.line_to(center + spark_size * 0.25, center - spark_size * 0.05)
-        ctx.line_to(center + spark_size * 0.7, center + spark_size * 0.5)
-        ctx.line_to(center + spark_size * 0.15, center + spark_size * 0.35)
+        ctx.line_to(center + spark_size * 0.22, center - spark_size * 0.32)
+        ctx.line_to(center + spark_size * 0.85, center - spark_size * 0.25)
+        ctx.line_to(center + spark_size * 0.35, center + spark_size * 0.05)
+        ctx.line_to(center + spark_size * 0.85, center + spark_size * 0.55)
+        ctx.line_to(center + spark_size * 0.22, center + spark_size * 0.35)
         ctx.line_to(center, center + spark_size)
-        ctx.line_to(center - spark_size * 0.15, center + spark_size * 0.35)
-        ctx.line_to(center - spark_size * 0.7, center + spark_size * 0.5)
-        ctx.line_to(center - spark_size * 0.25, center - spark_size * 0.05)
-        ctx.line_to(center - spark_size * 0.7, center - spark_size * 0.5)
-        ctx.line_to(center - spark_size * 0.15, center - spark_size * 0.35)
+        ctx.line_to(center - spark_size * 0.22, center + spark_size * 0.35)
+        ctx.line_to(center - spark_size * 0.85, center + spark_size * 0.55)
+        ctx.line_to(center - spark_size * 0.35, center + spark_size * 0.05)
+        ctx.line_to(center - spark_size * 0.85, center - spark_size * 0.25)
+        ctx.line_to(center - spark_size * 0.22, center - spark_size * 0.32)
         ctx.close_path()
         ctx.fill()
-
-        # Small neural dots
-        dot_radius = size * 0.03
-        ctx.set_source_rgba(1, 1, 1, 0.6)
-        for angle, dist in [(-math.pi, 0.85), (0, 0.85), (math.pi * 0.6, 0.9)]:
-            x = center + math.cos(angle) * radius * dist
-            y = center + math.sin(angle) * radius * dist
-            ctx.arc(x, y, dot_radius, 0, 2 * math.pi)
-            ctx.fill()
 
         icon_path = str(ICON_DIR / f"app-icon-{size}.png")
         surface.write_to_png(icon_path)
         return icon_path
 
-    def create_tray_icon(self, usage_pct: float, size: int = 22) -> str:
-        """Create KDE-style monochrome tray icon - gauge arc with AI spark"""
+    def create_tray_icon(self, size: int = 22) -> str:
+        """Create static KDE-style monochrome tray icon - AI spark symbol"""
+        icon_path = str(ICON_DIR / "tray-icon.png")
+
+        # Try to use bundled SVG first
+        if TRAY_ICON_SVG.exists():
+            try:
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                    str(TRAY_ICON_SVG), size, size, True
+                )
+                pixbuf.savev(icon_path, "png", [], [])
+                return icon_path
+            except Exception:
+                pass
+
+        # Fallback: Generate with Cairo
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
         ctx = cairo.Context(surface)
 
@@ -774,43 +764,25 @@ class IconGenerator:
         ctx.paint()
 
         center = size / 2
-        radius = size * 0.4
 
-        # Gauge background circle (faint)
-        ctx.set_source_rgba(1, 1, 1, 0.3)
-        ctx.set_line_width(size * 0.07)
-        ctx.arc(center, center, radius, 0, 2 * math.pi)
-        ctx.stroke()
-
-        # Gauge fill arc - length based on usage percentage
-        ctx.set_source_rgba(1, 1, 1, 1)
-        ctx.set_line_width(size * 0.09)
-        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-        # Map usage (0-100) to arc angle (0 to ~1.75*pi)
-        arc_extent = (usage_pct / 100) * 1.75 * math.pi
-        if arc_extent > 0.1:  # Only draw if there's meaningful usage
-            ctx.arc(center, center, radius, -math.pi / 2, -math.pi / 2 + arc_extent)
-            ctx.stroke()
-
-        # Simplified AI spark in center
-        spark_size = size * 0.22
+        # AI spark/star symbol
+        spark_size = size * 0.4
         ctx.set_source_rgba(1, 1, 1, 0.95)
         ctx.move_to(center, center - spark_size)
-        ctx.line_to(center + spark_size * 0.2, center - spark_size * 0.3)
-        ctx.line_to(center + spark_size * 0.8, center - spark_size * 0.35)
-        ctx.line_to(center + spark_size * 0.3, center)
-        ctx.line_to(center + spark_size * 0.8, center + spark_size * 0.5)
-        ctx.line_to(center + spark_size * 0.2, center + spark_size * 0.3)
+        ctx.line_to(center + spark_size * 0.22, center - spark_size * 0.32)
+        ctx.line_to(center + spark_size * 0.85, center - spark_size * 0.25)
+        ctx.line_to(center + spark_size * 0.35, center + spark_size * 0.05)
+        ctx.line_to(center + spark_size * 0.85, center + spark_size * 0.55)
+        ctx.line_to(center + spark_size * 0.22, center + spark_size * 0.35)
         ctx.line_to(center, center + spark_size)
-        ctx.line_to(center - spark_size * 0.2, center + spark_size * 0.3)
-        ctx.line_to(center - spark_size * 0.8, center + spark_size * 0.5)
-        ctx.line_to(center - spark_size * 0.3, center)
-        ctx.line_to(center - spark_size * 0.8, center - spark_size * 0.35)
-        ctx.line_to(center - spark_size * 0.2, center - spark_size * 0.3)
+        ctx.line_to(center - spark_size * 0.22, center + spark_size * 0.35)
+        ctx.line_to(center - spark_size * 0.85, center + spark_size * 0.55)
+        ctx.line_to(center - spark_size * 0.35, center + spark_size * 0.05)
+        ctx.line_to(center - spark_size * 0.85, center - spark_size * 0.25)
+        ctx.line_to(center - spark_size * 0.22, center - spark_size * 0.32)
         ctx.close_path()
         ctx.fill()
 
-        icon_path = str(ICON_DIR / f"tray-{int(usage_pct)}.png")
         surface.write_to_png(icon_path)
         return icon_path
 
@@ -1706,13 +1678,13 @@ class AIUsageMonitorApp:
         self.refresh_timeout_id = None
 
     def run(self):
-        app_icon_path = self.icon_gen.create_app_icon()
+        tray_icon_path = self.icon_gen.create_tray_icon()
         self.refresh_stats()
 
         if HAS_APPINDICATOR:
-            self._create_indicator(app_icon_path)
+            self._create_indicator(tray_icon_path)
         else:
-            self._create_status_icon(app_icon_path)
+            self._create_status_icon(tray_icon_path)
 
         self._start_refresh_timer()
         Gtk.main()
@@ -1819,10 +1791,6 @@ class AIUsageMonitorApp:
             self.providers[provider_id] = collector.collect()
 
         if self.indicator:
-            claude_stats = self.providers.get("claude")
-            usage_pct = claude_stats.session_used_pct if claude_stats and claude_stats.is_connected else 0
-            icon_path = self.icon_gen.create_tray_icon(usage_pct)
-            self.indicator.set_icon_full(icon_path, APP_NAME)
             self._update_indicator_menu()
 
         if self.window is not None:

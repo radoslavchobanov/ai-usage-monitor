@@ -1,13 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" width="22" height="22">
-  <!-- KDE-style monochrome tray icon: AI spark with gauge arc -->
-
-  <!-- Gauge arc background -->
-  <circle cx="11" cy="11" r="9" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.3"/>
-
-  <!-- Gauge fill arc -->
-  <path d="M11 2 A9 9 0 1 1 4 17" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
-
-  <!-- Small AI spark in center -->
-  <path d="M11 6 L11.8 9.5 L15 9 L12.5 11 L15 14 L11.8 12.5 L11 16 L10.2 12.5 L7 14 L9.5 11 L7 9 L10.2 9.5 Z"
-        fill="#ffffff" opacity="0.95"/>
+  <!-- KDE-style monochrome tray icon: AI spark/star -->
+  <path d="M11 2 L12.2 7.5 L17.5 6 L13.5 10.5 L18 15.5 L12.2 13 L11 20 L9.8 13 L4 15.5 L8.5 10.5 L4.5 6 L9.8 7.5 Z"
+        fill="#ffffff" fill-opacity="0.95"/>
 </svg>
