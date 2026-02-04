@@ -8,6 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="ai-usage-monitor"
 INSTALL_DIR="$HOME/.local/share/$APP_NAME"
+ICON_DIR="$HOME/.local/share/icons/hicolor"
 DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME.desktop"
 AUTOSTART_FILE="$HOME/.config/autostart/$APP_NAME.desktop"
 
@@ -29,35 +30,57 @@ if ! /usr/bin/python3 -c "import gi; gi.require_version('Gtk', '3.0'); from gi.r
     exit 1
 fi
 
-echo "[1/4] Creating installation directory..."
+echo "[1/5] Creating installation directories..."
 mkdir -p "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR/icons"
 mkdir -p "$(dirname "$DESKTOP_FILE")"
 mkdir -p "$(dirname "$AUTOSTART_FILE")"
 
-echo "[2/4] Installing application..."
+echo "[2/5] Installing application..."
 cp "$SCRIPT_DIR/ai_usage_monitor.py" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/ai_usage_monitor.py"
 
-echo "[3/4] Creating desktop entry..."
+echo "[3/5] Installing icons..."
+# Copy SVG icons
+cp -r "$SCRIPT_DIR/icons/"* "$INSTALL_DIR/icons/" 2>/dev/null || true
+
+# Install to system icon directories for desktop integration
+mkdir -p "$ICON_DIR/scalable/apps"
+cp "$SCRIPT_DIR/icons/app-icon.svg" "$ICON_DIR/scalable/apps/$APP_NAME.svg" 2>/dev/null || true
+
+# Generate PNG icons at various sizes for better compatibility
+for size in 16 22 24 32 48 64 128 256; do
+    mkdir -p "$ICON_DIR/${size}x${size}/apps"
+    if command -v rsvg-convert &> /dev/null; then
+        rsvg-convert -w $size -h $size "$SCRIPT_DIR/icons/app-icon.svg" -o "$ICON_DIR/${size}x${size}/apps/$APP_NAME.png" 2>/dev/null || true
+    elif command -v inkscape &> /dev/null; then
+        inkscape -w $size -h $size "$SCRIPT_DIR/icons/app-icon.svg" -o "$ICON_DIR/${size}x${size}/apps/$APP_NAME.png" 2>/dev/null || true
+    fi
+done
+
+# Update icon cache if possible
+gtk-update-icon-cache "$ICON_DIR" 2>/dev/null || true
+
+echo "[4/5] Creating desktop entry..."
 cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
 Name=AI Usage Monitor
 Comment=Monitor AI usage limits and costs
 Exec=/usr/bin/python3 $INSTALL_DIR/ai_usage_monitor.py
-Icon=utilities-system-monitor
+Icon=$APP_NAME
 Terminal=false
 Type=Application
 Categories=Utility;Monitor;
 StartupNotify=false
 EOF
 
-echo "[4/4] Setting up autostart..."
+echo "[5/5] Setting up autostart..."
 cat > "$AUTOSTART_FILE" << EOF
 [Desktop Entry]
 Name=AI Usage Monitor
 Comment=Monitor AI usage limits and costs
 Exec=/usr/bin/python3 $INSTALL_DIR/ai_usage_monitor.py
-Icon=utilities-system-monitor
+Icon=$APP_NAME
 Terminal=false
 Type=Application
 Categories=Utility;Monitor;
@@ -72,6 +95,7 @@ echo
 echo "The application has been installed to: $INSTALL_DIR"
 echo "Desktop entry created at: $DESKTOP_FILE"
 echo "Autostart entry created at: $AUTOSTART_FILE"
+echo "Icons installed to: $ICON_DIR"
 echo
 echo "To start the application:"
 echo "  python3 $INSTALL_DIR/ai_usage_monitor.py"

@@ -673,6 +673,11 @@ class CodexOAuthFetcher:
 # Icon Generator
 # ============================================================================
 
+# Path to bundled SVG icons
+APP_ICON_SVG = Path(__file__).parent / "icons" / "app-icon.svg"
+TRAY_ICON_SVG = Path(__file__).parent / "icons" / "tray-icon.svg"
+
+
 class IconGenerator:
     """Generates modern application icons for AI Usage Monitor"""
 
@@ -689,73 +694,97 @@ class IconGenerator:
         ctx.close_path()
 
     def create_app_icon(self, size: int = 64) -> str:
-        """Create modern app icon - stylized bar chart representing multiple AI providers"""
+        """Create modern app icon - uses bundled SVG or generates PNG fallback"""
+        # Try to use the bundled SVG icon first
+        if APP_ICON_SVG.exists():
+            try:
+                # Convert SVG to PNG at requested size using GdkPixbuf
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                    str(APP_ICON_SVG), size, size, True
+                )
+                icon_path = str(ICON_DIR / f"app-icon-{size}.png")
+                pixbuf.savev(icon_path, "png", [], [])
+                return icon_path
+            except Exception as e:
+                print(f"Could not load SVG icon: {e}")
+
+        # Fallback: Generate PNG with Cairo
+        return self._generate_app_icon_cairo(size)
+
+    def _generate_app_icon_cairo(self, size: int = 64) -> str:
+        """Generate app icon using Cairo (fallback)"""
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
         ctx = cairo.Context(surface)
 
-        center = size / 2
-        radius = size / 2 - 2
+        padding = 2
+        rect_size = size - padding * 2
+        corner_radius = rect_size * 0.22
 
-        # Modern gradient background (deep blue to purple)
-        gradient = cairo.RadialGradient(center * 0.7, center * 0.7, 0, center, center, radius * 1.2)
-        gradient.add_color_stop_rgb(0, 0.25, 0.28, 0.45)
-        gradient.add_color_stop_rgb(0.7, 0.12, 0.14, 0.28)
-        gradient.add_color_stop_rgb(1, 0.08, 0.09, 0.18)
+        # Purple gradient background (matching SVG: #6366f1 to #4f46e5)
+        gradient = cairo.LinearGradient(0, 0, size, size)
+        gradient.add_color_stop_rgb(0, 0.388, 0.4, 0.945)    # #6366f1
+        gradient.add_color_stop_rgb(1, 0.31, 0.275, 0.898)   # #4f46e5
 
-        # Rounded square background
-        corner_radius = radius * 0.3
-        self._rounded_rect(ctx, 2, 2, size - 4, size - 4, corner_radius)
+        self._rounded_rect(ctx, padding, padding, rect_size, rect_size, corner_radius)
         ctx.set_source(gradient)
         ctx.fill()
 
-        # Three vertical usage bars (representing multiple AI providers)
-        bar_width = size * 0.14
-        bar_spacing = size * 0.08
-        bar_heights = [0.55, 0.8, 0.65]
-        colors = [
-            (0.3, 0.85, 0.55),   # Green
-            (0.4, 0.7, 0.95),    # Blue
-            (0.95, 0.7, 0.2),    # Amber
-        ]
+        # Subtle inner glow at top
+        glow = cairo.LinearGradient(0, 0, 0, size * 0.5)
+        glow.add_color_stop_rgba(0, 1, 1, 1, 0.08)
+        glow.add_color_stop_rgba(1, 1, 1, 1, 0)
+        self._rounded_rect(ctx, padding, padding, rect_size, rect_size * 0.5, corner_radius)
+        ctx.set_source(glow)
+        ctx.fill()
 
+        # Three usage bars
+        bar_width = size * 0.156
+        bar_spacing = size * 0.11
         total_width = 3 * bar_width + 2 * bar_spacing
-        start_x = center - total_width / 2
+        start_x = (size - total_width) / 2
         bottom_y = size * 0.78
-        max_bar_height = size * 0.5
+        top_y = size * 0.28
+        max_bar_height = bottom_y - top_y
 
-        for i, (height_pct, color) in enumerate(zip(bar_heights, colors)):
+        # Bar colors (matching SVG gradients)
+        bar_colors = [
+            ((0.02, 0.588, 0.412), (0.063, 0.725, 0.506)),  # Green: #059669 to #10b981
+            ((0.145, 0.388, 0.922), (0.231, 0.51, 0.965)),  # Blue: #2563eb to #3b82f6
+            ((0.851, 0.467, 0.024), (0.961, 0.62, 0.043)),  # Amber: #d97706 to #f59e0b
+        ]
+        bar_heights = [0.56, 0.81, 0.69]  # Different heights for visual interest
+
+        for i, ((color_bottom, color_top), height_pct) in enumerate(zip(bar_colors, bar_heights)):
             x = start_x + i * (bar_width + bar_spacing)
             bar_height = max_bar_height * height_pct
             y = bottom_y - bar_height
 
-            # Bar background (dark)
-            ctx.set_source_rgba(1, 1, 1, 0.1)
-            self._rounded_rect(ctx, x, bottom_y - max_bar_height, bar_width, max_bar_height, bar_width * 0.3)
+            # Bar background (dark, semi-transparent)
+            ctx.set_source_rgba(1, 1, 1, 0.15)
+            self._rounded_rect(ctx, x, top_y, bar_width, max_bar_height, bar_width * 0.3)
             ctx.fill()
 
-            # Filled portion with gradient
-            bar_gradient = cairo.LinearGradient(x, bottom_y, x, y)
-            bar_gradient.add_color_stop_rgb(0, color[0] * 0.6, color[1] * 0.6, color[2] * 0.6)
-            bar_gradient.add_color_stop_rgb(1, color[0], color[1], color[2])
+            # Filled bar with gradient
+            bar_gradient = cairo.LinearGradient(0, bottom_y, 0, y)
+            bar_gradient.add_color_stop_rgb(0, *color_bottom)
+            bar_gradient.add_color_stop_rgb(1, *color_top)
 
             self._rounded_rect(ctx, x, y, bar_width, bar_height, bar_width * 0.3)
             ctx.set_source(bar_gradient)
             ctx.fill()
 
-        # Subtle top glow
-        glow = cairo.LinearGradient(0, 0, 0, size * 0.35)
-        glow.add_color_stop_rgba(0, 1, 1, 1, 0.06)
-        glow.add_color_stop_rgba(1, 1, 1, 1, 0)
-        self._rounded_rect(ctx, 2, 2, size - 4, size * 0.35, corner_radius)
-        ctx.set_source(glow)
-        ctx.fill()
+            # Subtle highlight on left edge of bar
+            ctx.set_source_rgba(1, 1, 1, 0.2)
+            highlight_width = bar_width * 0.25
+            self._rounded_rect(ctx, x, y, highlight_width, bar_height, highlight_width * 0.5)
+            ctx.fill()
 
-        icon_path = str(ICON_DIR / "app-icon.png")
+        icon_path = str(ICON_DIR / f"app-icon-{size}.png")
         surface.write_to_png(icon_path)
         return icon_path
 
     def create_tray_icon(self, usage_pct: float, size: int = 22) -> str:
-        """Create clean system tray icon - three-bar meter design"""
+        """Create system tray icon - three-bar meter that reflects usage level"""
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
         ctx = cairo.Context(surface)
 
@@ -763,46 +792,55 @@ class IconGenerator:
         ctx.set_source_rgba(0, 0, 0, 0)
         ctx.paint()
 
-        # Determine color based on usage
-        if usage_pct < 50:
-            r, g, b = 0.3, 0.85, 0.55  # Green
-        elif usage_pct < 80:
-            r, g, b = 0.95, 0.7, 0.2   # Amber
-        else:
-            r, g, b = 0.95, 0.35, 0.35  # Red
-
-        # Three vertical bars with increasing heights
-        bar_width = size * 0.24
-        bar_spacing = size * 0.06
+        # Bar dimensions
+        bar_width = size * 0.22
+        bar_spacing = size * 0.08
         total_width = 3 * bar_width + 2 * bar_spacing
         start_x = (size - total_width) / 2
-        bottom_y = size * 0.88
+        bottom_y = size * 0.86
+        top_y = size * 0.14
 
-        # Bar max heights (stepped)
-        bar_max_heights = [size * 0.35, size * 0.55, size * 0.75]
+        # Fixed bar heights (representing the three providers)
+        bar_heights = [0.4, 0.75, 0.55]
+        max_bar_height = bottom_y - top_y
 
-        # Calculate fill for each bar based on usage percentage
-        fill_heights = [
-            min(1.0, max(0.1, usage_pct / 33)) if usage_pct > 0 else 0,
-            min(1.0, max(0, (usage_pct - 20) / 40)) if usage_pct > 20 else 0,
-            min(1.0, max(0, (usage_pct - 50) / 50)) if usage_pct > 50 else 0,
-        ]
+        # Colors based on usage level
+        if usage_pct < 50:
+            # Green theme
+            colors = [
+                (0.188, 0.82, 0.345),   # #30d158 green
+                (0.231, 0.51, 0.965),   # #3b82f6 blue
+                (0.961, 0.62, 0.043),   # #f59e0b amber
+            ]
+        elif usage_pct < 80:
+            # Amber/warning theme
+            colors = [
+                (1.0, 0.624, 0.039),    # #ff9f0a amber
+                (1.0, 0.624, 0.039),    # amber
+                (1.0, 0.624, 0.039),    # amber
+            ]
+        else:
+            # Red/critical theme
+            colors = [
+                (1.0, 0.271, 0.227),    # #ff453a red
+                (1.0, 0.271, 0.227),    # red
+                (1.0, 0.271, 0.227),    # red
+            ]
 
-        for i in range(3):
+        for i, (height_pct, color) in enumerate(zip(bar_heights, colors)):
             x = start_x + i * (bar_width + bar_spacing)
-            full_height = bar_max_heights[i]
-            filled_height = full_height * fill_heights[i]
+            bar_height = max_bar_height * height_pct
+            y = bottom_y - bar_height
 
-            # Background bar (subtle gray)
-            ctx.set_source_rgba(0.5, 0.5, 0.5, 0.35)
-            self._rounded_rect(ctx, x, bottom_y - full_height, bar_width, full_height, bar_width * 0.25)
+            # Background bar (subtle)
+            ctx.set_source_rgba(0.5, 0.5, 0.5, 0.3)
+            self._rounded_rect(ctx, x, top_y, bar_width, max_bar_height, bar_width * 0.25)
             ctx.fill()
 
-            # Filled portion
-            if filled_height > 1:
-                ctx.set_source_rgb(r, g, b)
-                self._rounded_rect(ctx, x, bottom_y - filled_height, bar_width, filled_height, bar_width * 0.25)
-                ctx.fill()
+            # Filled bar
+            ctx.set_source_rgb(*color)
+            self._rounded_rect(ctx, x, y, bar_width, bar_height, bar_width * 0.25)
+            ctx.fill()
 
         icon_path = str(ICON_DIR / f"tray-{int(usage_pct)}.png")
         surface.write_to_png(icon_path)
