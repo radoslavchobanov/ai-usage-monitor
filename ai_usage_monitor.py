@@ -712,29 +712,44 @@ class IconGenerator:
         return self._generate_app_icon_cairo(size)
 
     def _generate_app_icon_cairo(self, size: int = 64) -> str:
-        """Generate KDE-style monochrome app icon using Cairo (fallback)"""
+        """Generate KDE-style monochrome app icon using Cairo (fallback) - Robot face"""
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
         ctx = cairo.Context(surface)
 
-        center = size / 2
-
-        # AI spark/star symbol
-        spark_size = size * 0.44
         ctx.set_source_rgba(1, 1, 1, 0.95)
-        ctx.move_to(center, center - spark_size)
-        ctx.line_to(center + spark_size * 0.22, center - spark_size * 0.32)
-        ctx.line_to(center + spark_size * 0.85, center - spark_size * 0.25)
-        ctx.line_to(center + spark_size * 0.35, center + spark_size * 0.05)
-        ctx.line_to(center + spark_size * 0.85, center + spark_size * 0.55)
-        ctx.line_to(center + spark_size * 0.22, center + spark_size * 0.35)
-        ctx.line_to(center, center + spark_size)
-        ctx.line_to(center - spark_size * 0.22, center + spark_size * 0.35)
-        ctx.line_to(center - spark_size * 0.85, center + spark_size * 0.55)
-        ctx.line_to(center - spark_size * 0.35, center + spark_size * 0.05)
-        ctx.line_to(center - spark_size * 0.85, center - spark_size * 0.25)
-        ctx.line_to(center - spark_size * 0.22, center - spark_size * 0.32)
-        ctx.close_path()
+        line_width = size * 0.06
+
+        # Antenna
+        ctx.set_line_width(line_width)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        ctx.move_to(size / 2, size * 0.03)
+        ctx.line_to(size / 2, size * 0.19)
+        ctx.stroke()
+        ctx.arc(size / 2, size * 0.03, size * 0.045, 0, 2 * math.pi)
         ctx.fill()
+
+        # Head (rounded rectangle)
+        head_x, head_y = size * 0.125, size * 0.22
+        head_w, head_h = size * 0.75, size * 0.69
+        head_r = size * 0.16
+        self._rounded_rect(ctx, head_x, head_y, head_w, head_h, head_r)
+        ctx.set_line_width(line_width)
+        ctx.stroke()
+
+        # Eyes
+        eye_w, eye_h = size * 0.19, size * 0.16
+        eye_r = size * 0.05
+        self._rounded_rect(ctx, size * 0.23, size * 0.375, eye_w, eye_h, eye_r)
+        ctx.fill()
+        self._rounded_rect(ctx, size * 0.58, size * 0.375, eye_w, eye_h, eye_r)
+        ctx.fill()
+
+        # Mouth
+        ctx.set_line_width(line_width)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        ctx.move_to(size * 0.31, size * 0.72)
+        ctx.line_to(size * 0.69, size * 0.72)
+        ctx.stroke()
 
         icon_path = str(ICON_DIR / f"app-icon-{size}.png")
         surface.write_to_png(icon_path)
@@ -755,33 +770,42 @@ class IconGenerator:
             except Exception:
                 pass
 
-        # Fallback: Generate with Cairo
+        # Fallback: Generate with Cairo - Robot face
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
         ctx = cairo.Context(surface)
 
-        # Clear background
-        ctx.set_source_rgba(0, 0, 0, 0)
-        ctx.paint()
-
-        center = size / 2
-
-        # AI spark/star symbol
-        spark_size = size * 0.4
         ctx.set_source_rgba(1, 1, 1, 0.95)
-        ctx.move_to(center, center - spark_size)
-        ctx.line_to(center + spark_size * 0.22, center - spark_size * 0.32)
-        ctx.line_to(center + spark_size * 0.85, center - spark_size * 0.25)
-        ctx.line_to(center + spark_size * 0.35, center + spark_size * 0.05)
-        ctx.line_to(center + spark_size * 0.85, center + spark_size * 0.55)
-        ctx.line_to(center + spark_size * 0.22, center + spark_size * 0.35)
-        ctx.line_to(center, center + spark_size)
-        ctx.line_to(center - spark_size * 0.22, center + spark_size * 0.35)
-        ctx.line_to(center - spark_size * 0.85, center + spark_size * 0.55)
-        ctx.line_to(center - spark_size * 0.35, center + spark_size * 0.05)
-        ctx.line_to(center - spark_size * 0.85, center - spark_size * 0.25)
-        ctx.line_to(center - spark_size * 0.22, center - spark_size * 0.32)
-        ctx.close_path()
+        line_width = size * 0.07
+
+        # Antenna
+        ctx.set_line_width(line_width)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        ctx.move_to(size / 2, size * 0.045)
+        ctx.line_to(size / 2, size * 0.18)
+        ctx.stroke()
+        ctx.arc(size / 2, size * 0.045, size * 0.045, 0, 2 * math.pi)
         ctx.fill()
+
+        # Head
+        head_x, head_y = size * 0.14, size * 0.23
+        head_w, head_h = size * 0.72, size * 0.64
+        head_r = size * 0.14
+        self._rounded_rect(ctx, head_x, head_y, head_w, head_h, head_r)
+        ctx.set_line_width(line_width)
+        ctx.stroke()
+
+        # Eyes
+        eye_w, eye_h = size * 0.18, size * 0.14
+        eye_r = size * 0.045
+        self._rounded_rect(ctx, size * 0.25, size * 0.36, eye_w, eye_h, eye_r)
+        ctx.fill()
+        self._rounded_rect(ctx, size * 0.57, size * 0.36, eye_w, eye_h, eye_r)
+        ctx.fill()
+
+        # Mouth
+        ctx.move_to(size * 0.32, size * 0.68)
+        ctx.line_to(size * 0.68, size * 0.68)
+        ctx.stroke()
 
         surface.write_to_png(icon_path)
         return icon_path
