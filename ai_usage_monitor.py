@@ -712,71 +712,52 @@ class IconGenerator:
         return self._generate_app_icon_cairo(size)
 
     def _generate_app_icon_cairo(self, size: int = 64) -> str:
-        """Generate app icon using Cairo (fallback)"""
+        """Generate KDE-style monochrome app icon using Cairo (fallback)"""
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
         ctx = cairo.Context(surface)
 
-        padding = 2
-        rect_size = size - padding * 2
-        corner_radius = rect_size * 0.22
+        center = size / 2
+        radius = size * 0.4
 
-        # Purple gradient background (matching SVG: #6366f1 to #4f46e5)
-        gradient = cairo.LinearGradient(0, 0, size, size)
-        gradient.add_color_stop_rgb(0, 0.388, 0.4, 0.945)    # #6366f1
-        gradient.add_color_stop_rgb(1, 0.31, 0.275, 0.898)   # #4f46e5
+        # Circular gauge background (faint)
+        ctx.set_source_rgba(1, 1, 1, 0.3)
+        ctx.set_line_width(size * 0.047)
+        ctx.arc(center, center, radius, 0, 2 * math.pi)
+        ctx.stroke()
 
-        self._rounded_rect(ctx, padding, padding, rect_size, rect_size, corner_radius)
-        ctx.set_source(gradient)
+        # Gauge fill arc (~70% - from top going clockwise)
+        ctx.set_source_rgba(1, 1, 1, 1)
+        ctx.set_line_width(size * 0.063)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        # Start from top (-90deg) and go ~250 degrees
+        ctx.arc(center, center, radius, -math.pi / 2, math.pi * 0.9)
+        ctx.stroke()
+
+        # AI spark/star in center
+        spark_size = size * 0.25
+        ctx.set_source_rgba(1, 1, 1, 0.9)
+        ctx.move_to(center, center - spark_size)
+        ctx.line_to(center + spark_size * 0.15, center - spark_size * 0.35)
+        ctx.line_to(center + spark_size * 0.7, center - spark_size * 0.5)
+        ctx.line_to(center + spark_size * 0.25, center - spark_size * 0.05)
+        ctx.line_to(center + spark_size * 0.7, center + spark_size * 0.5)
+        ctx.line_to(center + spark_size * 0.15, center + spark_size * 0.35)
+        ctx.line_to(center, center + spark_size)
+        ctx.line_to(center - spark_size * 0.15, center + spark_size * 0.35)
+        ctx.line_to(center - spark_size * 0.7, center + spark_size * 0.5)
+        ctx.line_to(center - spark_size * 0.25, center - spark_size * 0.05)
+        ctx.line_to(center - spark_size * 0.7, center - spark_size * 0.5)
+        ctx.line_to(center - spark_size * 0.15, center - spark_size * 0.35)
+        ctx.close_path()
         ctx.fill()
 
-        # Subtle inner glow at top
-        glow = cairo.LinearGradient(0, 0, 0, size * 0.5)
-        glow.add_color_stop_rgba(0, 1, 1, 1, 0.08)
-        glow.add_color_stop_rgba(1, 1, 1, 1, 0)
-        self._rounded_rect(ctx, padding, padding, rect_size, rect_size * 0.5, corner_radius)
-        ctx.set_source(glow)
-        ctx.fill()
-
-        # Three usage bars
-        bar_width = size * 0.156
-        bar_spacing = size * 0.11
-        total_width = 3 * bar_width + 2 * bar_spacing
-        start_x = (size - total_width) / 2
-        bottom_y = size * 0.78
-        top_y = size * 0.28
-        max_bar_height = bottom_y - top_y
-
-        # Bar colors (matching SVG gradients)
-        bar_colors = [
-            ((0.02, 0.588, 0.412), (0.063, 0.725, 0.506)),  # Green: #059669 to #10b981
-            ((0.145, 0.388, 0.922), (0.231, 0.51, 0.965)),  # Blue: #2563eb to #3b82f6
-            ((0.851, 0.467, 0.024), (0.961, 0.62, 0.043)),  # Amber: #d97706 to #f59e0b
-        ]
-        bar_heights = [0.56, 0.81, 0.69]  # Different heights for visual interest
-
-        for i, ((color_bottom, color_top), height_pct) in enumerate(zip(bar_colors, bar_heights)):
-            x = start_x + i * (bar_width + bar_spacing)
-            bar_height = max_bar_height * height_pct
-            y = bottom_y - bar_height
-
-            # Bar background (dark, semi-transparent)
-            ctx.set_source_rgba(1, 1, 1, 0.15)
-            self._rounded_rect(ctx, x, top_y, bar_width, max_bar_height, bar_width * 0.3)
-            ctx.fill()
-
-            # Filled bar with gradient
-            bar_gradient = cairo.LinearGradient(0, bottom_y, 0, y)
-            bar_gradient.add_color_stop_rgb(0, *color_bottom)
-            bar_gradient.add_color_stop_rgb(1, *color_top)
-
-            self._rounded_rect(ctx, x, y, bar_width, bar_height, bar_width * 0.3)
-            ctx.set_source(bar_gradient)
-            ctx.fill()
-
-            # Subtle highlight on left edge of bar
-            ctx.set_source_rgba(1, 1, 1, 0.2)
-            highlight_width = bar_width * 0.25
-            self._rounded_rect(ctx, x, y, highlight_width, bar_height, highlight_width * 0.5)
+        # Small neural dots
+        dot_radius = size * 0.03
+        ctx.set_source_rgba(1, 1, 1, 0.6)
+        for angle, dist in [(-math.pi, 0.85), (0, 0.85), (math.pi * 0.6, 0.9)]:
+            x = center + math.cos(angle) * radius * dist
+            y = center + math.sin(angle) * radius * dist
+            ctx.arc(x, y, dot_radius, 0, 2 * math.pi)
             ctx.fill()
 
         icon_path = str(ICON_DIR / f"app-icon-{size}.png")
@@ -784,7 +765,7 @@ class IconGenerator:
         return icon_path
 
     def create_tray_icon(self, usage_pct: float, size: int = 22) -> str:
-        """Create system tray icon - three-bar meter that reflects usage level"""
+        """Create KDE-style monochrome tray icon - gauge arc with AI spark"""
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
         ctx = cairo.Context(surface)
 
@@ -792,55 +773,42 @@ class IconGenerator:
         ctx.set_source_rgba(0, 0, 0, 0)
         ctx.paint()
 
-        # Bar dimensions
-        bar_width = size * 0.22
-        bar_spacing = size * 0.08
-        total_width = 3 * bar_width + 2 * bar_spacing
-        start_x = (size - total_width) / 2
-        bottom_y = size * 0.86
-        top_y = size * 0.14
+        center = size / 2
+        radius = size * 0.4
 
-        # Fixed bar heights (representing the three providers)
-        bar_heights = [0.4, 0.75, 0.55]
-        max_bar_height = bottom_y - top_y
+        # Gauge background circle (faint)
+        ctx.set_source_rgba(1, 1, 1, 0.3)
+        ctx.set_line_width(size * 0.07)
+        ctx.arc(center, center, radius, 0, 2 * math.pi)
+        ctx.stroke()
 
-        # Colors based on usage level
-        if usage_pct < 50:
-            # Green theme
-            colors = [
-                (0.188, 0.82, 0.345),   # #30d158 green
-                (0.231, 0.51, 0.965),   # #3b82f6 blue
-                (0.961, 0.62, 0.043),   # #f59e0b amber
-            ]
-        elif usage_pct < 80:
-            # Amber/warning theme
-            colors = [
-                (1.0, 0.624, 0.039),    # #ff9f0a amber
-                (1.0, 0.624, 0.039),    # amber
-                (1.0, 0.624, 0.039),    # amber
-            ]
-        else:
-            # Red/critical theme
-            colors = [
-                (1.0, 0.271, 0.227),    # #ff453a red
-                (1.0, 0.271, 0.227),    # red
-                (1.0, 0.271, 0.227),    # red
-            ]
+        # Gauge fill arc - length based on usage percentage
+        ctx.set_source_rgba(1, 1, 1, 1)
+        ctx.set_line_width(size * 0.09)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        # Map usage (0-100) to arc angle (0 to ~1.75*pi)
+        arc_extent = (usage_pct / 100) * 1.75 * math.pi
+        if arc_extent > 0.1:  # Only draw if there's meaningful usage
+            ctx.arc(center, center, radius, -math.pi / 2, -math.pi / 2 + arc_extent)
+            ctx.stroke()
 
-        for i, (height_pct, color) in enumerate(zip(bar_heights, colors)):
-            x = start_x + i * (bar_width + bar_spacing)
-            bar_height = max_bar_height * height_pct
-            y = bottom_y - bar_height
-
-            # Background bar (subtle)
-            ctx.set_source_rgba(0.5, 0.5, 0.5, 0.3)
-            self._rounded_rect(ctx, x, top_y, bar_width, max_bar_height, bar_width * 0.25)
-            ctx.fill()
-
-            # Filled bar
-            ctx.set_source_rgb(*color)
-            self._rounded_rect(ctx, x, y, bar_width, bar_height, bar_width * 0.25)
-            ctx.fill()
+        # Simplified AI spark in center
+        spark_size = size * 0.22
+        ctx.set_source_rgba(1, 1, 1, 0.95)
+        ctx.move_to(center, center - spark_size)
+        ctx.line_to(center + spark_size * 0.2, center - spark_size * 0.3)
+        ctx.line_to(center + spark_size * 0.8, center - spark_size * 0.35)
+        ctx.line_to(center + spark_size * 0.3, center)
+        ctx.line_to(center + spark_size * 0.8, center + spark_size * 0.5)
+        ctx.line_to(center + spark_size * 0.2, center + spark_size * 0.3)
+        ctx.line_to(center, center + spark_size)
+        ctx.line_to(center - spark_size * 0.2, center + spark_size * 0.3)
+        ctx.line_to(center - spark_size * 0.8, center + spark_size * 0.5)
+        ctx.line_to(center - spark_size * 0.3, center)
+        ctx.line_to(center - spark_size * 0.8, center - spark_size * 0.35)
+        ctx.line_to(center - spark_size * 0.2, center - spark_size * 0.3)
+        ctx.close_path()
+        ctx.fill()
 
         icon_path = str(ICON_DIR / f"tray-{int(usage_pct)}.png")
         surface.write_to_png(icon_path)

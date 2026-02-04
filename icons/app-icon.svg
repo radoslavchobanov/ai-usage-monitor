@@ -1,42 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1"/>
-      <stop offset="100%" style="stop-color:#4f46e5"/>
-    </linearGradient>
-    <linearGradient id="barGreen" x1="0%" y1="100%" x2="0%" y2="0%">
-      <stop offset="0%" style="stop-color:#059669"/>
-      <stop offset="100%" style="stop-color:#10b981"/>
-    </linearGradient>
-    <linearGradient id="barBlue" x1="0%" y1="100%" x2="0%" y2="0%">
-      <stop offset="0%" style="stop-color:#2563eb"/>
-      <stop offset="100%" style="stop-color:#3b82f6"/>
-    </linearGradient>
-    <linearGradient id="barAmber" x1="0%" y1="100%" x2="0%" y2="0%">
-      <stop offset="0%" style="stop-color:#d97706"/>
-      <stop offset="100%" style="stop-color:#f59e0b"/>
-    </linearGradient>
-  </defs>
+  <!-- KDE-style monochrome icon: AI spark with circular gauge -->
 
-  <!-- Background rounded square -->
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bgGrad)"/>
+  <!-- Circular gauge background -->
+  <circle cx="32" cy="32" r="26" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.3"/>
 
-  <!-- Subtle inner glow -->
-  <rect x="2" y="2" width="60" height="30" rx="14" fill="url(#bgGrad)" opacity="0.3"/>
+  <!-- Gauge fill (arc showing ~70% usage) -->
+  <path d="M32 6 A26 26 0 1 1 11.5 49" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
 
-  <!-- Three usage bars -->
-  <!-- Bar backgrounds (darker) -->
-  <rect x="12" y="18" width="10" height="32" rx="3" fill="rgba(255,255,255,0.15)"/>
-  <rect x="27" y="18" width="10" height="32" rx="3" fill="rgba(255,255,255,0.15)"/>
-  <rect x="42" y="18" width="10" height="32" rx="3" fill="rgba(255,255,255,0.15)"/>
+  <!-- AI spark/star symbol in center -->
+  <path d="M32 16 L34 26 L44 24 L36 30 L44 40 L34 36 L32 48 L30 36 L20 40 L28 30 L20 24 L30 26 Z"
+        fill="#ffffff" opacity="0.9"/>
 
-  <!-- Filled portions -->
-  <rect x="12" y="32" width="10" height="18" rx="3" fill="url(#barGreen)"/>
-  <rect x="27" y="24" width="10" height="26" rx="3" fill="url(#barBlue)"/>
-  <rect x="42" y="28" width="10" height="22" rx="3" fill="url(#barAmber)"/>
-
-  <!-- Subtle highlight on bars -->
-  <rect x="12" y="32" width="3" height="18" rx="1.5" fill="rgba(255,255,255,0.2)"/>
-  <rect x="27" y="24" width="3" height="26" rx="1.5" fill="rgba(255,255,255,0.2)"/>
-  <rect x="42" y="28" width="3" height="22" rx="1.5" fill="rgba(255,255,255,0.2)"/>
+  <!-- Small dots representing neural activity -->
+  <circle cx="14" cy="32" r="2" fill="#ffffff" opacity="0.6"/>
+  <circle cx="50" cy="32" r="2" fill="#ffffff" opacity="0.6"/>
+  <circle cx="32" cy="56" r="2" fill="#ffffff" opacity="0.5"/>
 </svg>
